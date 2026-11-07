@@ -116,4 +116,25 @@ func TestValidateConfig(t *testing.T) {
 		require.ErrorIs(t, err, errBadConfig)
 		require.ErrorIs(t, err, errIfNameInMultiplePools)
 	})
+
+	t.Run("pools with nil filters do not panic", func(t *testing.T) {
+		require.NoError(t, validateConfig(&v2alpha1.CiliumNetworkDriverNodeConfigSpec{
+			Pools: []v2alpha1.CiliumNetworkDriverDevicePoolConfig{
+				{PoolName: "pool-nil-first", Filter: nil},
+				pool("pool-a", []string{"eth0"}, nil, nil),
+				{PoolName: "pool-nil-last", Filter: nil},
+			},
+		}))
+	})
+
+	t.Run("duplicate ifname after nil-filter pool still returns errIfNameInMultiplePools", func(t *testing.T) {
+		err := validateConfig(&v2alpha1.CiliumNetworkDriverNodeConfigSpec{
+			Pools: []v2alpha1.CiliumNetworkDriverDevicePoolConfig{
+				{PoolName: "pool-nil", Filter: nil},
+				pool("pool-a", []string{"eth0"}, nil, nil),
+				pool("pool-b", []string{"eth0"}, nil, nil),
+			},
+		})
+		require.ErrorIs(t, err, errIfNameInMultiplePools)
+	})
 }

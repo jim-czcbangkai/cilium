@@ -15,8 +15,15 @@ import (
 // some filter fields can be shared among devices (ex: driver, vendor, device id, pf name), but others
 // can't (ex: ifname, pciaddr).
 func validateFilters(this v2alpha1.CiliumNetworkDriverDevicePoolConfig, others ...v2alpha1.CiliumNetworkDriverDevicePoolConfig) error {
+	if this.Filter == nil {
+		return nil
+	}
+
 	for _, ifname := range this.Filter.IfNames {
 		for _, otherPool := range others {
+			if otherPool.Filter == nil {
+				continue
+			}
 			if slices.Contains(otherPool.Filter.IfNames, ifname) {
 				return fmt.Errorf("%w: %s on pools %s and %s", errIfNameInMultiplePools, ifname, this.PoolName, otherPool.PoolName)
 			}
@@ -32,13 +39,9 @@ func validatePools(this v2alpha1.CiliumNetworkDriverDevicePoolConfig, others ...
 		if this.PoolName == p.PoolName {
 			return fmt.Errorf("%w: %s", errDuplicatedPoolName, this.PoolName)
 		}
-
-		if err := validateFilters(this, others...); err != nil {
-			return err
-		}
 	}
 
-	return nil
+	return validateFilters(this, others...)
 }
 
 // validateConfig ensures a configuration is sane.

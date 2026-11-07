@@ -165,16 +165,8 @@ func TestReadEPsFromDirNamesWithRestoreFailure(t *testing.T) {
 	require.NotNil(t, ep)
 	tmpDir := t.TempDir()
 
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		os.Chdir(cwd)
-	}()
-	os.Chdir(tmpDir)
-	require.NoError(t, err)
-
 	fullDirName := filepath.Join(tmpDir, ep.DirectoryPath())
-	err = os.MkdirAll(fullDirName, 0o777)
+	err := os.MkdirAll(fullDirName, 0o777)
 	require.NoError(t, err)
 
 	err = ep.writeHeaderfile(fullDirName)
@@ -276,6 +268,23 @@ func TestSerializableEndpointUnmarshalDNSRulesV2(t *testing.T) {
 	ep := &Endpoint{}
 	ep.fromSerializedEndpoint(&restored)
 	require.Equal(t, v2Rules, ep.DNSRules)
+}
+
+func TestReadEPsFromDirNamesRemovesIncompleteDirInBasePath(t *testing.T) {
+	logger := hivetest.Logger(t)
+	tmpDir := t.TempDir()
+
+	completeDir := filepath.Join(tmpDir, "12")
+	incompleteDir := filepath.Join(tmpDir, "12_next")
+	require.NoError(t, os.MkdirAll(completeDir, 0o777))
+	require.NoError(t, os.MkdirAll(incompleteDir, 0o777))
+
+	ReadEPsFromDirNames(context.Background(), logger, &fakeParser{}, tmpDir, []string{"12", "12_next"})
+
+	_, err := os.Stat(incompleteDir)
+	require.True(t, os.IsNotExist(err), "expected incomplete restore directory under basePath to be removed")
+	_, err = os.Stat(completeDir)
+	require.NoError(t, err)
 }
 
 func TestPartitionEPDirNamesByRestoreStatus(t *testing.T) {

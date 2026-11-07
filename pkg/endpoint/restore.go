@@ -54,7 +54,7 @@ func ReadEPsFromDirNames(ctx context.Context, logger *slog.Logger, parser Endpoi
 				fmt.Sprintf("Found incomplete restore directory %s. Removing it...", fullDirName),
 				logfields.EndpointID, epDirName,
 			)
-			if err := os.RemoveAll(epDirName); err != nil {
+			if err := os.RemoveAll(fullDirName); err != nil {
 				logger.Warn(
 					fmt.Sprintf("Error while removing directory %s. Ignoring it...", fullDirName),
 					logfields.Error, err,

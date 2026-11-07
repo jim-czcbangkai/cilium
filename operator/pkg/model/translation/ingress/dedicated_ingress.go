@@ -116,11 +116,17 @@ func (d *dedicatedIngressTranslator) getService(resource model.FullyQualifiedRes
 		switch service.Type {
 		case string(corev1.ServiceTypeNodePort):
 			serviceType = corev1.ServiceTypeNodePort
-			if service.InsecureNodePort != nil {
-				ports[0].NodePort = int32(*service.InsecureNodePort)
-			}
-			if service.SecureNodePort != nil {
-				ports[1].NodePort = int32(*service.SecureNodePort)
+			if tlsOnly {
+				if service.SecureNodePort != nil {
+					ports[0].NodePort = int32(*service.SecureNodePort)
+				}
+			} else {
+				if service.InsecureNodePort != nil {
+					ports[0].NodePort = int32(*service.InsecureNodePort)
+				}
+				if service.SecureNodePort != nil {
+					ports[1].NodePort = int32(*service.SecureNodePort)
+				}
 			}
 		case string(corev1.ServiceTypeLoadBalancer):
 			// Do nothing as the port number is allocated by the cloud provider.

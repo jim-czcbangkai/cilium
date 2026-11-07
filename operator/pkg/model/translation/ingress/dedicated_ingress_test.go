@@ -187,6 +187,45 @@ func Test_getService(t *testing.T) {
 			},
 		}, res)
 	})
+
+	t.Run("TLS-only Node Port service", func(t *testing.T) {
+		var insecureNodePort uint32 = 3000
+		var secureNodePort uint32 = 3001
+		it := &dedicatedIngressTranslator{logger: hivetest.Logger(t)}
+		res := it.getService(resource, &model.Service{
+			Type:             "NodePort",
+			InsecureNodePort: &insecureNodePort,
+			SecureNodePort:   &secureNodePort,
+		}, true)
+		require.Equal(t, &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "cilium-ingress-dummy-ingress",
+				Namespace: "dummy-namespace",
+				Labels:    map[string]string{"cilium.io/ingress": "true"},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "networking.k8s.io/v1",
+						Kind:       "Ingress",
+						Name:       "dummy-ingress",
+						UID:        "d4bd3dc3-2ac5-4ab4-9dca-89c62c60177e",
+						Controller: ptr.To(true),
+					},
+				},
+			},
+			Spec: corev1.ServiceSpec{
+				Type: corev1.ServiceTypeNodePort,
+				Ports: []corev1.ServicePort{
+					{
+						Name:     "https",
+						Protocol: "TCP",
+						Port:     443,
+						NodePort: 3001,
+					},
+				},
+				IPFamilyPolicy: ptr.To(corev1.IPFamilyPolicyPreferDualStack),
+			},
+		}, res)
+	})
 }
 
 func Test_getEndpointForIngress(t *testing.T) {

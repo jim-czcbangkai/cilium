@@ -183,7 +183,7 @@ func (ipam *IPAM) allocateIP(ip netip.Addr, owner string, pool Pool, needSyncUps
 		logfields.PoolName, result.IPPoolName,
 	)
 
-	ipam.registerIPOwner(ip, owner, pool)
+	ipam.registerIPOwner(ip, owner, result.IPPoolName)
 	metrics.IPAMEvent.WithLabelValues(metricAllocate, string(family)).Inc()
 	return
 }
@@ -240,14 +240,14 @@ func (ipam *IPAM) allocateNextFamily(family Family, owner string, pool Pool, nee
 		}
 
 		resultIP := result.IP
-		if _, ok := ipam.isIPExcluded(resultIP, pool); !ok {
+		if _, ok := ipam.isIPExcluded(resultIP, result.IPPoolName); !ok {
 			ipam.logger.Debug(
 				"Allocated random IP",
 				logfields.IPAddr, result.IP,
 				logfields.PoolName, result.IPPoolName,
 				logfields.Owner, owner,
 			)
-			ipam.registerIPOwner(resultIP, owner, pool)
+			ipam.registerIPOwner(resultIP, owner, result.IPPoolName)
 			metrics.IPAMEvent.WithLabelValues(metricAllocate, string(family)).Inc()
 			return
 		}
@@ -255,7 +255,7 @@ func (ipam *IPAM) allocateNextFamily(family Family, owner string, pool Pool, nee
 		// The allocated IP is excluded, do not use it. The excluded IP
 		// is now allocated so it won't be allocated in the next
 		// iteration.
-		ipam.registerIPOwner(resultIP, fmt.Sprintf("%s (excluded)", owner), pool)
+		ipam.registerIPOwner(resultIP, fmt.Sprintf("%s (excluded)", owner), result.IPPoolName)
 	}
 }
 

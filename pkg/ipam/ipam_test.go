@@ -324,6 +324,11 @@ func TestLegacyAllocatorIPAMMetadata(t *testing.T) {
 	resIPv4, err := ipam.AllocateIPWithoutSyncUpstream(ipv4, "default/specific-ip", "override")
 	require.NoError(t, err)
 	require.Equal(t, PoolDefault(), resIPv4.IPPoolName)
+	require.True(t, ipam.IsAllocatedIP(resIPv4.IP))
+	allocv4, _, _ := ipam.Dump()
+	require.Equal(t, "default/specific-ip", allocv4[resIPv4.IP.String()])
+	require.NoError(t, ipam.ReleaseIP(resIPv4.IP, resIPv4.IPPoolName))
+	require.False(t, ipam.IsAllocatedIP(resIPv4.IP))
 
 	// AllocateIP with default pool
 	ipv4 = ipv4.Next()
@@ -336,6 +341,13 @@ func TestLegacyAllocatorIPAMMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, PoolDefault(), resIPv4.IPPoolName)
 	require.Equal(t, PoolDefault(), resIPv6.IPPoolName)
+	allocv4, allocv6, _ := ipam.Dump()
+	require.Equal(t, "test/some-pod", allocv4[resIPv4.IP.String()])
+	require.Equal(t, "test/some-pod", allocv6[resIPv6.IP.String()])
+	require.NoError(t, ipam.ReleaseIP(resIPv4.IP, resIPv4.IPPoolName))
+	require.NoError(t, ipam.ReleaseIP(resIPv6.IP, resIPv6.IPPoolName))
+	require.False(t, ipam.IsAllocatedIP(resIPv4.IP))
+	require.False(t, ipam.IsAllocatedIP(resIPv6.IP))
 
 	// AllocateNext with specific pool
 	resIPv4, resIPv6, err = ipam.AllocateNext("", "test/some-other-pod", "override")
